@@ -32,7 +32,7 @@ def dowordfreqs(label, thedict, logfile):
 
         thistextsplit = thistext.split()
         for item in thistextsplit:
-            freqs[item.lower()] += 1 
+            freqs[item.lower()] += 1 # this works for assigning a thing to an uninitiated location and it knows that it will start at 0 and then go up one. Only works because "defaultdict"
 
     # put into a list for sorting by freq
     freqlist = []
@@ -60,23 +60,23 @@ def dumptweet(label, thetweet, logfile):
 ##
 ## This is a major kluge because DAB can't find the magic function to convert
 ## from tweepy into a Python dictionary.
-## 
-## The big hassle is that there can be embedded newline characters. So in 
+##
+## The big hassle is that there can be embedded newline characters. So in
 ## the 'gettweets' function we have separated the JSON/dict keys from their
 ## values with a string 'XXZZXX', and we have appended a string 'ZZXXZZ' to
 ## the end of a single value for a JSON/Twitter key
 ## This allows us to read lines from the file until we get something ending
 ## in 'ZZXXZZ', which is how we know we have come to the end of the value for
 ## that key.
-## 
-## We read the file and create seqnum-key-value triples, which we append to  
-## a list. We then process the list to create 'thebigdictionary' of all the 
-## tweets, each of which is a dictionary of key-value mappings. 
-## 
+##
+## We read the file and create seqnum-key-value triples, which we append to
+## a list. We then process the list to create 'thebigdictionary' of all the
+## tweets, each of which is a dictionary of key-value mappings.
+##
 def readtweets(inputfile, outputfile, logfile):
 
     ############################################################################
-    ## Build the list of input lines, making sure to deal with embedded newline 
+    ## Build the list of input lines, making sure to deal with embedded newline
     ## characters. the result of this is a list of [seqnum, key, value] triples.
     oneline = ''
     thelines = []
@@ -200,4 +200,3 @@ datainputfilename = sys.argv[1]
 dataoutputfilename = sys.argv[2]
 logfilename = sys.argv[3]
 main(datainputfilename, dataoutputfilename, logfilename)
-

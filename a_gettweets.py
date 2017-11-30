@@ -12,9 +12,9 @@ from collections import defaultdict
 
 sys.path.append('/Users/buell/Current/Python/')
 
-from DABUtilities.dabfunctions.checkargs import checkargs
-from DABUtilities.dabfunctions.printoutput import printoutput
-from DABUtilities.dabfunctions.dabtimer import DABTimer
+from z_checkargs import checkargs
+from z_printoutput import printoutput
+# from DABUtilities.dabfunctions.dabtimer import DABTimer
 
 ################################################################################
 ## Simple function to dump a tweet's keys and values, with a preceding label.
@@ -49,6 +49,10 @@ def gettweets(howmanytweets, dataoutputfile, logfile):
 
     count = 0
     for result in limit_handled(tweepy.Cursor(api.search, q=" mom ").items(), logfile):
+        # TODO this will be where we implement the from and since keywords, which I will do
+        #
+        # TODO read the stop word file into a set, so we can lookup into a set and continue if the word is there (very fast)
+        # TODO the cron job will read a sequence number from a file to ensure uniqueness and also read in the last valid ID that was run so we know where to start
 
         jsonversion = json.dumps(result._json)
 #        print('\nJSONVERSION')
@@ -110,24 +114,24 @@ def limit_handled(cursor, logfile):
 ##
 ## This is a major kluge because DAB can't find the magic function to convert
 ## from tweepy into a Python dictionary.
-## 
-## The big hassle is that there can be embedded newline characters. So in 
+##
+## The big hassle is that there can be embedded newline characters. So in
 ## the 'gettweets' function we have separated the JSON/dict keys from their
 ## values with a string 'XXZZXX', and we have appended a string 'ZZXXZZ' to
 ## the end of a single value for a JSON/Twitter key
 ## This allows us to read lines from the file until we get something ending
 ## in 'ZZXXZZ', which is how we know we have come to the end of the value for
 ## that key.
-## 
-## We read the file and create seqnum-key-value triples, which we append to  
-## a list. We then process the list to create 'thebigdictionary' of all the 
-## tweets, each of which is a dictionary of key-value mappings. 
-## 
+##
+## We read the file and create seqnum-key-value triples, which we append to
+## a list. We then process the list to create 'thebigdictionary' of all the
+## tweets, each of which is a dictionary of key-value mappings.
+##
 def readtweets():
     inputfile = open('outputDAB.txt', 'r')
 
     ############################################################################
-    ## Build the list of input lines, making sure to deal with embedded newline 
+    ## Build the list of input lines, making sure to deal with embedded newline
     ## characters. the result of this is a list of [seqnum, key, value] triples.
     oneline = ''
     thelines = []
@@ -211,4 +215,3 @@ howmanytweets = int(sys.argv[1])
 dataoutputfilename = sys.argv[2]
 logfilename = sys.argv[3]
 main(howmanytweets, dataoutputfilename, logfilename)
-
