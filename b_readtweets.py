@@ -22,6 +22,15 @@ from z_printoutput import printoutput
 ################################################################################
 ## Simple function to count freqs of words in the texts.
 def dowordfreqs(label, thedict, logfile):
+
+    stopfile = open('wstoplistNLTK.txt')
+    stopwords = set()
+    for line in stopfile:
+        stopwords.add(line.strip())
+    stopfile.close()
+
+#    print(stopwords)
+
     freqs = defaultdict(int)
     outstring = '\nWORDFREQS %s' % (label)
     printoutput(outstring, logfile)
@@ -32,7 +41,27 @@ def dowordfreqs(label, thedict, logfile):
 
         thistextsplit = thistext.split()
         for item in thistextsplit:
-            freqs[item.lower()] += 1 # this works for assigning a thing to an uninitiated location and it knows that it will start at 0 and then go up one. Only works because "defaultdict"
+            item = item.replace('“', '"')
+            item = item.replace('”', '"')
+            item = item.replace('’', "'")
+
+
+            item = item.lower()
+            item = item.strip()
+            if item.startswith('"'):
+                item = item[1:]
+            if item.endswith('"'):
+                item = item[:-1]
+            if item.endswith('.'):
+                item = item[:-1]
+
+            if item.endswith(','):
+                item = item.replace(',', '')
+            if item.endswith(':'):
+                item = item.replace(':', '')
+            if item in stopwords:
+                continue
+            freqs[item] += 1 
 
     # put into a list for sorting by freq
     freqlist = []
@@ -45,6 +74,13 @@ def dowordfreqs(label, thedict, logfile):
         word = item[1]
         outstring = 'FREQ %6d %s' % (freq, word)
         printoutput(outstring, logfile)
+
+################################################################################
+## Simple function to output some statistics
+def dostats(label, thedict, dupcount, logfile):
+    outstring = '%s tweets and dups %8d %8d' % \
+                 (label, len(thedict), dupcount)
+    printoutput(outstring, logfile)
 
 ################################################################################
 ## Simple function to dump a tweet's keys and values, with a preceding label.
@@ -60,29 +96,29 @@ def dumptweet(label, thetweet, logfile):
 ##
 ## This is a major kluge because DAB can't find the magic function to convert
 ## from tweepy into a Python dictionary.
-##
-## The big hassle is that there can be embedded newline characters. So in
+## 
+## The big hassle is that there can be embedded newline characters. So in 
 ## the 'gettweets' function we have separated the JSON/dict keys from their
 ## values with a string 'XXZZXX', and we have appended a string 'ZZXXZZ' to
 ## the end of a single value for a JSON/Twitter key
 ## This allows us to read lines from the file until we get something ending
 ## in 'ZZXXZZ', which is how we know we have come to the end of the value for
 ## that key.
-##
-## We read the file and create seqnum-key-value triples, which we append to
-## a list. We then process the list to create 'thebigdictionary' of all the
-## tweets, each of which is a dictionary of key-value mappings.
-##
+## 
+## We read the file and create seqnum-key-value triples, which we append to  
+## a list. We then process the list to create 'thebigdictionary' of all the 
+## tweets, each of which is a dictionary of key-value mappings. 
+## 
 def readtweets(inputfile, outputfile, logfile):
 
     ############################################################################
-    ## Build the list of input lines, making sure to deal with embedded newline
+    ## Build the list of input lines, making sure to deal with embedded newline 
     ## characters. the result of this is a list of [seqnum, key, value] triples.
     oneline = ''
     thelines = []
     for line in inputfile:
         if not line.strip().endswith('ZZXXZZ'):
-            print('FOUND MULTILINE %s' % (line))
+#            print('FOUND MULTILINE %s' % (line))
             oneline = oneline + line + '\n'
         else:
 #            print('FOUND ONELINE   %s' % (line))
@@ -139,35 +175,76 @@ def readtweets(inputfile, outputfile, logfile):
     dupcountold = 0
     for seqkey, thistweet in sorted(thebigdictionary.items()):
         thisidstr = thistweet['id_str']
-        print('ZORK_ID_STR %s' % (thisidstr))
+        outstring = 'ID_STR %s' % (thisidstr)
+        printoutput(outstring, outputfile)
         # If 'id_str' is not in our dict, save the tweet, else continue
         if thisidstr not in thefiltereddict.keys():
             thefiltereddict[thisidstr] = thistweet
         else:
-            print('ZORK_ID_STR DUPLICATE %s' % (thisidstr))
+            outstring = 'ID_STR DUPLICATE %s' % (thisidstr)
+            printoutput(outstring, outputfile)
             dupcountold += 1
             continue
 
-    ############################################################################
-    ## Dump the dictionary of tweets to verify that we have them stored.
-    print('DUMP THE DE-DUPED TWEETS')
-    for idstr, thistweet in sorted(thefiltereddict.items()):
-#        print('TWEETC %8s' % (idstr))
-        label = 'TWEETD %s:' % (idstr)
-        dumptweet(label, thistweet, logfile)
+#    ############################################################################
+#    ## Turn the 'user' string into a dict of its own.
+#    thefiltereddict2 = defaultdict()
+#    print("CONVERT 'user' TO DICT")
+#    for idstr, thistweet in sorted(thefiltereddict.items()):
+#        userstring = thistweet['user']
+#        print('CONVERTUSERA %s' % (userstring))
+#        userstring = userstring.strip()
+#        if userstring.startswith('{'):
+#            userstring = userstring[1:]
+#        else:
+#            print('ERRORA CONVERTUSER %s' % (userstring))
+#            sys.exit()
+#        if userstring.endswith('}'):
+#            userstring = userstring[:len(userstring)-1]
+#        else:
+#            print('ERRORB CONVERTUSER %s' % (userstring))
+#            sys.exit()
+#        print('CONVERTUSERB %s' % (userstring))
+#        userstringsplit = userstring.split(',')
+#        print()
+#        for item in userstringsplit:
+#            print('    CONVERTUSERC %s' % (item))
+#
+##        userstring = userstring.replace("'", '"')
+##        print('CONVERTUSERB %s' % (userstring))
+##        userstring2 = StringIO(userstring)
+##        userdict = json.load(userstring2)
+##        userstringjson = json.dumps(thistweet['user'])
+##        print('CONVERTUSERSTRINGJSON   %s' % (userstringjson))
+##        userstringjsonio = StringIO(userstringjson)
+##        print('CONVERTUSERSTRINGJSONIO %s' % (userstringjsonio))
+##        userdict = json.load(userstringjsonio)
+##        thistweet['user'] = userdict
+##        print('USERDICT %s %s' % (type(userdict), userdict))
+##        thefiltereddict2[idstr] = thistweet
+
+#    ############################################################################
+#    ## Dump the dictionary of tweets to verify that we have them stored.
+#    print('DUMP THE DE-DUPED TWEETS')
+#    for idstr, thistweet in sorted(thefiltereddict.items()):
+##        print('TWEETC %8s' % (idstr))
+#        label = 'TWEETD %s:' % (idstr)
+#        dumptweet(label, thistweet, logfile)
 
     lenoriginal = len(thebigdictionary)
     lenfiltered = len(thefiltereddict)
 
     if lenfiltered == lenoriginal:
-        print('NO DUPS  %d %d' % (lenoriginal, lenfiltered))
+        outstring = 'NO DUPS  %d %d' % (lenoriginal, lenfiltered)
+        printoutput(outstring, logfile)
     else:
         dupcountnew = lenoriginal - lenfiltered
-        print('YES DUPS %d %d (%d) (%d)' % (lenoriginal, lenfiltered, dupcountold, dupcountnew))
+        outstring = 'YES DUPS %d %d (%d) (%d)' % (lenoriginal, lenfiltered, dupcountold, dupcountnew)
+        printoutput(outstring, logfile)
 
     thebigdictionary.clear() # save memory space, no need for this any more
 
-    return thefiltereddict
+    return thefiltereddict, dupcountold
 
 ################################################################################
 ##
@@ -186,10 +263,12 @@ def main(datainputfilename, dataoutputfilename, logfilename):
     outstring = "MAIN: WRITE LOG TO FILE    '%s'" % (logfilename)
     printoutput(outstring, logfile)
 
-    thedict = readtweets(datainputfile, dataoutputfile, logfile)
+    thedict, dupcount = readtweets(datainputfile, dataoutputfile, logfile)
     datainputfile.close()
 
     dowordfreqs('FREQS', thedict, dataoutputfile)
+
+    dostats('STATS', thedict, dupcount, dataoutputfile)
 
     dataoutputfile.close()
 
@@ -200,3 +279,4 @@ datainputfilename = sys.argv[1]
 dataoutputfilename = sys.argv[2]
 logfilename = sys.argv[3]
 main(datainputfilename, dataoutputfilename, logfilename)
+
